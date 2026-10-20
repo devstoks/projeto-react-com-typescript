@@ -15,6 +15,8 @@ interface ErroApi {
     erro?: string;
 }
 
+const API_URL = 'https://projeto-node-step-t5i1.vercel.app';
+
 const RegistrarForm = () => {
     const navigate = useNavigate();
 
@@ -65,15 +67,12 @@ const RegistrarForm = () => {
         }
 
         try {
-            await axios.post(
-                'https://projeto-node-step-t5i1.vercel.app/registrar',
-                {
-                    nome: username,
-                    email,
-                    role,
-                    senha: password
-                }
-            );
+            await axios.post(`${API_URL}/registrar`, {
+                nome: username,
+                email,
+                role,
+                senha: password,
+            });
 
             navigate('/login');
         } catch (err: unknown) {
@@ -104,6 +103,7 @@ const RegistrarForm = () => {
             <FormField
                 label="Nome"
                 id="username"
+                name="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Digite seu nome"
@@ -112,6 +112,7 @@ const RegistrarForm = () => {
             <FormField
                 label="Email"
                 id="email"
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -121,6 +122,7 @@ const RegistrarForm = () => {
             <FormField
                 label="Senha"
                 id="password"
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -130,6 +132,7 @@ const RegistrarForm = () => {
             <FormField
                 label="Função"
                 id="role"
+                name="role"
                 as="select"
                 value={role}
                 onChange={handleRoleChange}

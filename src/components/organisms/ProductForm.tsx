@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -49,7 +50,6 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
 
-    // Todos os estados são string (o input sempre devolve string).
     const [nome, setNome] = useState('');
     const [preco, setPreco] = useState('');
     const [descricao, setDescricao] = useState('');
@@ -66,7 +66,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
     useEffect(() => {
         if (!ehEdicao || !id) return;
 
-        const fetchProduto = async () => {
+        const fetchProduto = async (): Promise<void> => {
             try {
                 const { data } = await axios.get<ProdutoResponse>(
                     `${API_URL}/produtos/${id}`
@@ -87,72 +87,100 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                         : ''
                 );
                 setImagem(data.imagem ?? '');
-            } catch (err) {
+            } catch (err: unknown) {
                 console.error('Erro ao buscar produto:', err);
                 setError('Erro ao carregar produto.');
             }
         };
 
-        fetchProduto();
+        void fetchProduto();
     }, [ehEdicao, id]);
 
-    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (
+        e: FormEvent<HTMLFormElement>
+    ): Promise<void> => {
         e.preventDefault();
         setError('');
 
         if (
-            !nome ||
+            !nome.trim() ||
             !preco ||
-            !descricao ||
+            !descricao.trim() ||
             !categoria ||
             !nota ||
             !quantidade ||
-            !imagem
+            !imagem.trim()
         ) {
             setError('Todos os campos são obrigatórios!');
             return;
         }
 
+        const precoNumero = Number(preco);
+        const notaNumero = Number(nota);
+        const quantidadeNumero = Number(quantidade);
+
+        if (
+            !Number.isFinite(precoNumero) ||
+            precoNumero <= 0 ||
+            !Number.isFinite(notaNumero) ||
+            notaNumero < 0 ||
+            notaNumero > 5 ||
+            !Number.isInteger(quantidadeNumero) ||
+            quantidadeNumero < 0
+        ) {
+            setError('Confira o preço, a avaliação e a quantidade informados.');
+            return;
+        }
+
         const payload: ProdutoPayload = {
-            nome,
-            preco: Number(preco),
-            descricao,
+            nome: nome.trim(),
+            preco: precoNumero,
+            descricao: descricao.trim(),
             categoria,
-            imagem,
+            imagem: imagem.trim(),
             avaliacao: {
-                nota: Number(nota),
-                quantidade: Number(quantidade),
+                nota: notaNumero,
+                quantidade: quantidadeNumero,
             },
         };
 
         try {
             if (ehEdicao) {
+                if (!id) {
+                    setError('ID do produto não informado.');
+                    return;
+                }
+
                 await axios.put(`${API_URL}/produtos/${id}`, payload, {
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
 
                 setSucesso('Produto atualizado com sucesso!');
             } else {
                 await axios.post(`${API_URL}/produtos`, payload, {
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
 
                 setSucesso('Produto criado com sucesso!');
             }
-        } catch (err) {
+        } catch (err: unknown) {
             const axiosError = err as AxiosError<ApiError>;
 
             console.error('Erro:', axiosError.response?.data);
 
             setError(
                 axiosError.response?.data?.message ||
-                    axiosError.response?.data?.erro ||
-                    `Erro ao ${ehEdicao ? 'atualizar' : 'criar'} produto.`
+                axiosError.response?.data?.erro ||
+                `Erro ao ${ehEdicao ? 'atualizar' : 'criar'} produto.`
             );
         }
     };
 
-    const handleFecharModal = () => {
+    const handleFecharModal = (): void => {
         setSucesso('');
         navigate('/user/home');
     };
@@ -164,6 +192,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                     <FormField
                         label="Nome do produto"
                         id="nome"
+                        name="nome"
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
                         placeholder="Ex: iPhone 12"
@@ -172,6 +201,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                     <FormField
                         label="Categoria"
                         id="categoria"
+                        name="categoria"
                         as="select"
                         value={categoria}
                         onChange={(e) => setCategoria(e.target.value)}
@@ -188,6 +218,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                     <FormField
                         label="Preço (R$)"
                         id="preco"
+                        name="preco"
                         type="number"
                         value={preco}
                         onChange={(e) => setPreco(e.target.value)}
@@ -197,6 +228,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                     <FormField
                         label="Avaliação (0 a 5)"
                         id="nota"
+                        name="nota"
                         type="number"
                         value={nota}
                         onChange={(e) => setNota(e.target.value)}
@@ -207,6 +239,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                 <FormField
                     label="Quantidade de avaliações"
                     id="quantidade"
+                    name="quantidade"
                     type="number"
                     value={quantidade}
                     onChange={(e) => setQuantidade(e.target.value)}
@@ -216,6 +249,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                 <FormField
                     label="URL da imagem"
                     id="imagem"
+                    name="imagem"
                     type="url"
                     value={imagem}
                     onChange={(e) => setImagem(e.target.value)}
@@ -225,6 +259,7 @@ const ProductForm = ({ modo = 'criar', id = null }: ProductFormProps) => {
                 <FormField
                     label="Descrição"
                     id="descricao"
+                    name="descricao"
                     value={descricao}
                     onChange={(e) => setDescricao(e.target.value)}
                     placeholder="Descreva o produto..."

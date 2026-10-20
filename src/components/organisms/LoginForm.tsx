@@ -1,12 +1,29 @@
 
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Componentes reutilizáveis da interface
 import FormField from '../molecules/FormField';
 import ErrorMessage from '../molecules/ErrorMessage';
 import Button from '../atoms/Button';
+
+interface LoginResponse {
+    token: string;
+}
+
+interface PerfilResponse {
+    usuario: {
+        role: string;
+    };
+}
+
+interface ApiError {
+    message?: string;
+    erro?: string;
+}
+
+const API_URL = 'https://projeto-node-step-t5i1.vercel.app';
 
 const LoginForm = () => {
     const navigate = useNavigate();
@@ -16,7 +33,7 @@ const LoginForm = () => {
     const [error, setError] = useState('');
 
     const handleSubmit = async (
-        e: React.FormEvent<HTMLFormElement>
+        e: FormEvent<HTMLFormElement>
     ): Promise<void> => {
         e.preventDefault();
         setError('');
@@ -28,24 +45,25 @@ const LoginForm = () => {
 
         try {
             // Envia as credenciais e recebe o token JWT.
-            const { data } = await axios.post<{ token: string }>(
-                'https://projeto-node-step-t5i1.vercel.app/login',
-                { email, senha: password }
+            const { data } = await axios.post<LoginResponse>(
+                `${API_URL}/login`,
+                {
+                    email,
+                    senha: password,
+                }
             );
 
             const { token } = data;
 
             localStorage.setItem('token', token);
 
-            // Busca os dados do usuário autenticado.
-            const perfil = await axios.get<{
-                usuario: { role: string };
-            }>(
-                'https://projeto-node-step-t5i1.vercel.app/me',
+            // Busca o perfil do usuário autenticado.
+            const perfil = await axios.get<PerfilResponse>(
+                `${API_URL}/me`,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
             );
 
@@ -55,7 +73,11 @@ const LoginForm = () => {
         } catch (err: unknown) {
             console.error('Erro no login:', err);
 
-            if (axios.isAxiosError<{ message?: string; erro?: string }>(err)) {
+            if (axios.isAxiosError<ApiError>(err)) {
+                // Evita manter credenciais parciais se a consulta do perfil falhar.
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+
                 setError(
                     err.response?.data?.message ||
                     err.response?.data?.erro ||
@@ -72,6 +94,7 @@ const LoginForm = () => {
             <FormField
                 label="Email"
                 id="email"
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -81,6 +104,7 @@ const LoginForm = () => {
             <FormField
                 label="Senha"
                 id="password"
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

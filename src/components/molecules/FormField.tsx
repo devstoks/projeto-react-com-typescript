@@ -1,22 +1,25 @@
+
+import type { ChangeEvent, ReactNode } from 'react';
+
 import Label from '../atoms/Label';
 import Input from '../atoms/Input';
 
 interface FormFieldProps {
     label: string;
     id: string;
+    name: string;
     className?: string;
     type?: string;
     value: string;
     onChange: (
-        event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+        event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => void;
     placeholder?: string;
     as?: 'input' | 'select';
-    children?: React.ReactNode;
-    name: string;
+    children?: ReactNode;
 }
 
-// Componente que representa um campo de formulário com rótulo e input
+// Componente reutilizável de campo de formulário.
 const FormField = ({
     label,
     id,
